@@ -236,6 +236,13 @@
       indicator.className = 'status-indicator status-inactive';
       startBtn.disabled = false;
       stopBtn.disabled = true;
+
+      // Inform server to remove this jeep
+      fetch('/api/location/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jeepId: JEEP_ID })
+      }).catch(() => {});
     }
     
     startBtn.addEventListener('click', startTracking);

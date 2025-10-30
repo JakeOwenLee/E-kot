@@ -96,6 +96,14 @@ ipconfig
 }
 ```
 
+**POST /api/location/stop**
+
+Body:
+```json
+{ "jeepId": "PHONE-GPS" }
+```
+Effect: removes the jeep from active tracking, clears cache, and emits `locationRemove` to clients.
+
 **GET /positions**
 
 Returns the latest known coordinates for active jeeps (from Redis cache, falling back to memory):

@@ -104,6 +104,31 @@ app.get('/api/locations', (req, res) => {
   res.json(jeepLocations);
 });
 
+// Explicit stop endpoint to remove a jeep from active tracking
+app.post('/api/location/stop', async (req, res) => {
+  try {
+    const { jeepId } = req.body || {};
+    if (!jeepId) {
+      return res.status(400).json({ error: 'jeepId is required' });
+    }
+
+    const existed = !!jeepLocations[jeepId];
+    delete jeepLocations[jeepId];
+
+    if (redis) {
+      await redis.del(`pos:${jeepId}`).catch(() => {});
+      await redis.srem('jeeps', jeepId).catch(() => {});
+    }
+
+    io.emit('locationRemove', { jeepId });
+
+    res.json({ success: true, removed: existed });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // REST polling endpoint for latest positions
 app.get('/positions', async (req, res) => {
   try {

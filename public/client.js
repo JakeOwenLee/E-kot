@@ -1,7 +1,7 @@
 const socket = io();
 
 let map;
-let jeepMarker = null;
+let jeepMarkers = {}; // jeepId -> marker
 let stopMarkers = [];
 let pollTimer = null;
 const POLL_MS = 5000;
@@ -96,51 +96,57 @@ socket.on('connect', () => {
   console.log('Connected to server');
 });
 
+function buildJeepIcon(labelNumber) {
+  const number = labelNumber || 1;
+  const html = `
+    <div style="position:relative;width:28px;height:28px;border-radius:50%;background:#0a66c2;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);background-image:url('img/ejeep-logo.png');background-size:cover;background-position:center;">
+      <div style="position:absolute;top:-6px;right:-6px;background:#003a6c;color:#fff;width:18px;height:18px;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;border:1px solid #fff;">${number}</div>
+    </div>`;
+  return L.divIcon({ className: 'jeep-badge-icon', html, iconSize: [28, 28], iconAnchor: [14, 14] });
+}
+
 socket.on('initialLocations', (locations) => {
-  console.log('Initial locations:', locations);
-  const jeepIds = Object.keys(locations);
-  if (jeepIds.length > 0) {
-    const firstJeep = locations[jeepIds[0]];
-    
-    if (!jeepMarker) {
-      const jeepIcon = L.divIcon({
-        className: 'jeep-icon',
-        html: '<div style="background: #4caf50; color: white; padding: 8px 12px; border-radius: 20px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">🚐 E-JEEP</div>',
-        iconSize: [80, 30],
-        iconAnchor: [40, 15]
-      });
-      
-      jeepMarker = L.marker([firstJeep.latitude, firstJeep.longitude], { icon: jeepIcon }).addTo(map);
-      jeepMarker.bindPopup('<strong>Live GPS Tracking</strong>');
-    } else {
-      jeepMarker.setLatLng([firstJeep.latitude, firstJeep.longitude]);
+  const ids = Object.keys(locations);
+  ids.forEach((id, idx) => {
+    const d = locations[id];
+    const icon = buildJeepIcon(idx + 1);
+    const marker = L.marker([d.latitude, d.longitude], { icon }).addTo(map);
+    jeepMarkers[id] = marker;
+    if (idx === 0) {
+      map.setView([d.latitude, d.longitude], 17);
+      updateUI(d);
     }
-    
-    map.setView([firstJeep.latitude, firstJeep.longitude], 17);
-    updateUI(firstJeep);
-  }
+  });
 });
 
 socket.on('locationUpdate', (data) => {
-  console.log('Location update:', data);
-  
-  const newLatLng = [data.latitude, data.longitude];
-  
-  if (!jeepMarker) {
-    const jeepIcon = L.divIcon({
-      className: 'jeep-icon',
-      html: '<div style="background: #4caf50; color: white; padding: 8px 12px; border-radius: 20px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">🚐 E-JEEP</div>',
-      iconSize: [80, 30],
-      iconAnchor: [40, 15]
-    });
-    
-    jeepMarker = L.marker(newLatLng, { icon: jeepIcon }).addTo(map);
-    jeepMarker.bindPopup('<strong>Live GPS Tracking</strong>');
+  const id = data.jeepId;
+  const pos = [data.latitude, data.longitude];
+  if (!jeepMarkers[id]) {
+    const icon = buildJeepIcon(1);
+    jeepMarkers[id] = L.marker(pos, { icon }).addTo(map);
   } else {
-    jeepMarker.setLatLng(newLatLng);
+    jeepMarkers[id].setLatLng(pos);
   }
-
   updateUI(data);
+});
+
+socket.on('locationRemove', ({ jeepId }) => {
+  const marker = jeepMarkers[jeepId];
+  if (marker) {
+    marker.remove();
+    delete jeepMarkers[jeepId];
+  }
+  const remainingIds = Object.keys(jeepMarkers);
+  if (remainingIds.length === 0) {
+    document.getElementById('jeep-id').textContent = '-';
+    const statusEl = document.getElementById('status');
+    statusEl.textContent = 'Waiting for GPS data...';
+    statusEl.className = 'value status-waiting';
+    document.getElementById('current-location').textContent = '-';
+    document.getElementById('nearest-stop').textContent = '-';
+    document.getElementById('last-update').textContent = '-';
+  }
 });
 
 socket.on('disconnect', () => {
@@ -158,19 +164,6 @@ async function pollPositions() {
     const items = body.items || [];
     if (items.length > 0) {
       const d = items[0];
-      const newLatLng = [d.latitude, d.longitude];
-      if (!jeepMarker) {
-        const jeepIcon = L.divIcon({
-          className: 'jeep-icon',
-          html: '<div style="background: #4caf50; color: white; padding: 8px 12px; border-radius: 20px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">🚐 E-JEEP</div>',
-          iconSize: [80, 30],
-          iconAnchor: [40, 15]
-        });
-        jeepMarker = L.marker(newLatLng, { icon: jeepIcon }).addTo(map);
-        jeepMarker.bindPopup('<strong>Live GPS Tracking</strong>');
-      } else {
-        jeepMarker.setLatLng(newLatLng);
-      }
       updateUI(d);
     }
   } catch (_) {}
