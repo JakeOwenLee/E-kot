@@ -18,7 +18,7 @@ body {
 }
 
 header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #003a6c 0%, #0a66c2 100%);
   color: white;
   padding: 1.5rem 2rem;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -78,13 +78,13 @@ nav a.active {
 }
 
 .info-panel h2 {
-  color: #667eea;
+  color: #003a6c;
   margin-bottom: 1rem;
   font-size: 1.3rem;
 }
 
 .info-panel h3 {
-  color: #764ba2;
+  color: #0a66c2;
   margin: 1.5rem 0 0.8rem 0;
   font-size: 1.1rem;
 }
@@ -118,12 +118,12 @@ nav a.active {
 }
 
 .status-active {
-  color: #4caf50;
+  color: #2e7d32;
   font-weight: bold;
 }
 
 .status-waiting {
-  color: #ff9800;
+  color: #ef6c00;
   font-weight: bold;
 }
 

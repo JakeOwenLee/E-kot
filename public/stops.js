@@ -1,5 +1,6 @@
 window.STOPS = {
   lineA: [
+    { name: 'Gate 1 E-Jeep Station', coords: [14.634644, 121.075036] },
     { name: 'AGS E-Jeep Station', coords: [14.637709, 121.076327] },
     { name: 'Gate 2.5 E-Jeep Station', coords: [14.637709, 121.076327] },
     { name: 'Leong Hall E-Jeep Station', coords: [14.640845, 121.076276] },

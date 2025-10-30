@@ -14,22 +14,13 @@ function initMap() {
     maxZoom: 19
   }).addTo(map);
   
-  // Original campus bounds
-  const orig = [
-    [14.6350, 121.0700],
-    [14.6500, 121.0850]
-  ];
-  // Expand by ~5%
-  const latSpan = orig[1][0] - orig[0][0];
-  const lonSpan = orig[1][1] - orig[0][1];
-  const padLat = latSpan * 0.05;
-  const padLon = lonSpan * 0.05;
+  // Expanded bounds covering ADMU → Arton Rockwell → UP Town Center
   const bounds = [
-    [orig[0][0] - padLat, orig[0][1] - padLon],
-    [orig[1][0] + padLat, orig[1][1] + padLon]
+    [14.6200, 121.0550], // SW
+    [14.6700, 121.1000]  // NE
   ];
   map.setMaxBounds(bounds);
-  map.setMinZoom(16);
+  map.setMinZoom(14);
 }
 
 const STOP_ICON_A = L.divIcon({
@@ -50,30 +41,16 @@ function renderStops() {
   stopMarkers.forEach(m => m.remove());
   stopMarkers = [];
 
-  const aLayer = L.layerGroup();
-  const bLayer = L.layerGroup();
-
   (window.STOPS.lineA || []).forEach(s => {
     const m = L.marker(s.coords, { icon: STOP_ICON_A }).bindPopup(`<strong>${s.name}</strong>`);
-    m.addTo(aLayer);
+    m.addTo(map);
     stopMarkers.push(m);
   });
   (window.STOPS.lineB || []).forEach(s => {
     const m = L.marker(s.coords, { icon: STOP_ICON_B }).bindPopup(`<strong>${s.name}</strong>`);
-    m.addTo(bLayer);
+    m.addTo(map);
     stopMarkers.push(m);
   });
-
-  aLayer.addTo(map);
-  const polyA = L.polyline((window.STOPS.lineA || []).map(s => s.coords), { color: '#1976d2', weight: 3, opacity: 0.7 });
-  const polyB = L.polyline((window.STOPS.lineB || []).map(s => s.coords), { color: '#d32f2f', weight: 3, opacity: 0.7 });
-  polyA.addTo(map);
-  L.control.layers(null, {
-    'Line A Stops': aLayer,
-    'Line B Stops': bLayer,
-    'Line A Route': polyA,
-    'Line B Route': polyB
-  }, { collapsed: true }).addTo(map);
 }
 
 function haversineMeters([lat1, lon1], [lat2, lon2]) {
@@ -162,9 +139,7 @@ socket.on('locationUpdate', (data) => {
   } else {
     jeepMarker.setLatLng(newLatLng);
   }
-  
-  map.panTo(newLatLng);
-  
+
   updateUI(data);
 });
 
@@ -196,7 +171,6 @@ async function pollPositions() {
       } else {
         jeepMarker.setLatLng(newLatLng);
       }
-      map.panTo(newLatLng);
       updateUI(d);
     }
   } catch (_) {}
