@@ -1,0 +1,26 @@
+{
+  "name": "e-kot",
+  "version": "1.0.0",
+  "description": "E-Jeep Real-time Tracker",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "jeep",
+    "tracker",
+    "gps",
+    "realtime"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@upstash/redis": "^1.35.6",
+    "axios": "^1.13.1",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "pg": "^8.16.3",
+    "socket.io": "^4.8.1"
+  }
+}

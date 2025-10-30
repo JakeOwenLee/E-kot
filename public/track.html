@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Track with Phone - E-Kot</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .track-container {
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    .status-box {
+      padding: 1.5rem;
+      background: #f9f9f9;
+      border-radius: 8px;
+      margin: 1.5rem 0;
+    }
+    
+    .btn {
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      margin: 0.5rem 0;
+      transition: all 0.3s;
+    }
+    
+    .btn-start {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-start:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-stop {
+      background: #f44336;
+      color: white;
+    }
+    
+    .btn-stop:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    
+    .status-active {
+      background: #4caf50;
+      box-shadow: 0 0 8px #4caf50;
+    }
+    
+    .status-inactive {
+      background: #ccc;
+    }
+    
+    .info-text {
+      color: #666;
+      line-height: 1.6;
+      margin: 1rem 0;
+    }
+    
+    .coordinates {
+      font-family: 'Courier New', monospace;
+      background: #f0f4ff;
+      padding: 0.5rem;
+      border-radius: 4px;
+      margin: 0.5rem 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>E-Kot Tracker</h1>
+      <p>Real-time E-Jeep Location Monitoring - ADMU Campus</p>
+      <nav>
+        <a href="/">View Tracker</a>
+        <a href="/track.html" class="active">Track with Phone</a>
+      </nav>
+    </header>
+    
+    <div class="track-container">
+      <h2>📱 Track with Your Phone</h2>
+      <p class="info-text">
+        Use your phone's GPS to simulate being an e-jeep and see yourself move on the map in real-time!
+      </p>
+      
+      <div class="status-box">
+        <h3>
+          <span id="tracking-indicator" class="status-indicator status-inactive"></span>
+          Status: <span id="tracking-status">Not Tracking</span>
+        </h3>
+        
+        <div id="location-info" style="margin-top: 1rem; display: none;">
+          <p><strong>Your Location:</strong></p>
+          <div class="coordinates">
+            Lat: <span id="current-lat">-</span><br>
+            Lng: <span id="current-lng">-</span>
+          </div>
+          <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">
+            Last update: <span id="last-update-time">-</span>
+          </p>
+          <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">
+            Updates sent: <span id="update-count">0</span>
+          </p>
+        </div>
+      </div>
+      
+      <button id="start-btn" class="btn btn-start">Start Tracking</button>
+      <button id="stop-btn" class="btn btn-stop" disabled>Stop Tracking</button>
+      
+      <div style="margin-top: 2rem; padding: 1rem; background: #fff9e6; border-left: 4px solid #ffc107; border-radius: 4px;">
+        <h4 style="margin-top: 0; color: #f57c00;">📌 Instructions:</h4>
+        <ol style="margin: 0.5rem 0; padding-left: 1.5rem; color: #666;">
+          <li>Click "Start Tracking" to begin</li>
+          <li>Allow location access when prompted</li>
+          <li>Walk around campus to see the jeep move</li>
+          <li>Open the main tracker page on another device to watch</li>
+          <li>Click "Stop Tracking" when done</li>
+        </ol>
+      </div>
+      
+      <div style="margin-top: 1.5rem; text-align: center;">
+        <a href="/" style="color: #667eea; text-decoration: none; font-weight: bold;">
+          ← Back to Tracker Map
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    let watchId = null;
+    let isTracking = false;
+    let updateCount = 0;
+    const JEEP_ID = 'PHONE-GPS';
+    
+    const startBtn = document.getElementById('start-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const statusText = document.getElementById('tracking-status');
+    const indicator = document.getElementById('tracking-indicator');
+    const locationInfo = document.getElementById('location-info');
+    const latSpan = document.getElementById('current-lat');
+    const lngSpan = document.getElementById('current-lng');
+    const updateTime = document.getElementById('last-update-time');
+    const updateCountSpan = document.getElementById('update-count');
+    
+    async function sendLocation(latitude, longitude) {
+      try {
+        const response = await fetch('/api/location/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jeepId: JEEP_ID,
+            latitude,
+            longitude,
+            timestamp: Date.now(),
+            nearestStop: 'Phone GPS'
+          })
+        });
+        
+        if (response.ok) {
+          updateCount++;
+          updateCountSpan.textContent = updateCount;
+          latSpan.textContent = latitude.toFixed(6);
+          lngSpan.textContent = longitude.toFixed(6);
+          updateTime.textContent = new Date().toLocaleTimeString();
+          console.log('Location sent:', latitude, longitude);
+        }
+      } catch (error) {
+        console.error('Error sending location:', error);
+      }
+    }
+    
+    function startTracking() {
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser');
+        return;
+      }
+      
+      statusText.textContent = 'Starting...';
+      
+      watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          if (!isTracking) {
+            isTracking = true;
+            statusText.textContent = 'Tracking Active';
+            indicator.className = 'status-indicator status-active';
+            locationInfo.style.display = 'block';
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+          }
+          
+          sendLocation(latitude, longitude);
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          alert('Error getting location: ' + error.message);
+          stopTracking();
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        }
+      );
+    }
+    
+    function stopTracking() {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      
+      isTracking = false;
+      statusText.textContent = 'Not Tracking';
+      indicator.className = 'status-indicator status-inactive';
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    }
+    
+    startBtn.addEventListener('click', startTracking);
+    stopBtn.addEventListener('click', stopTracking);
+  </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+window.STOPS = {
+  lineA: [
+    { name: 'AGS E-Jeep Station', coords: [14.637709, 121.076327] },
+    { name: 'Gate 2.5 E-Jeep Station', coords: [14.637709, 121.076327] },
+    { name: 'Leong Hall E-Jeep Station', coords: [14.640845, 121.076276] },
+    { name: 'Xavier Hall E-Jeep Station', coords: [14.640081, 121.078496] },
+    { name: 'Cervini Hall E-Jeep Station', coords: [14.639123, 121.080127] },
+    { name: 'Old Comms Building E-Jeep Station', coords: [14.636607, 121.078187] },
+    { name: 'Loyola House of Studies E-Jeep Station', coords: [14.636365, 121.080766] }
+  ],
+  lineB: [
+    { name: 'Arete E-Jeep Station', coords: [14.640693, 121.075704] },
+    { name: 'Ateneo Junior High School E-Jeep Station', coords: [14.643922, 121.080637] },
+    { name: 'Ateneo Senior High School FLC E-Jeep Station', coords: [14.646273, 121.080724] },
+    { name: 'Bellarmine Hall E-Jeep Station', coords: [14.641497, 121.079714] },
+    { name: 'Social Development Complex E-Jeep Station', coords: [14.641649, 121.077984] }
+  ]
+};
+
+
