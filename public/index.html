@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>E-Kot - E-Jeep Tracker</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <title>E-Kot - Live ADMU E-Jeep Tracker Prototype Project</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>E-Kot Tracker</h1>
-      <p>Real-time E-Jeep Location Monitoring - ADMU Campus</p>
+      <h1>E-Kot</h1>
+      <p>Live ADMU E-Jeep Tracker Prototype Project</p>
       <nav>
         <a href="/" class="active">View Tracker</a>
         <a href="/track.html">Track with Phone</a>
@@ -19,8 +19,6 @@
     </header>
     
     <div class="main-content">
-      <div id="map"></div>
-      
       <div class="info-panel">
         <h2>E-Jeep Status</h2>
         <div id="jeep-info">
@@ -45,24 +43,13 @@
             <span id="last-update" class="value">-</span>
           </div>
         </div>
-        
-        <div class="route-info">
-          <h3>How to Start Tracking</h3>
-          <div style="padding: 1rem; background: #fff; border-radius: 8px; margin-top: 1rem;">
-            <p style="margin-bottom: 1rem; color: #666;">To see the e-jeep location:</p>
-            <ol style="margin: 0; padding-left: 1.5rem; color: #555; line-height: 1.8;">
-              <li>Open the <strong>Track with Phone</strong> page on your phone</li>
-              <li>Click "Start Tracking"</li>
-              <li>Allow GPS access</li>
-              <li>Watch the map update here in real-time!</li>
-            </ol>
-          </div>
-        </div>
       </div>
+
+      <div id="map"></div>
     </div>
   </div>
   
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="stops.js"></script>
   <script src="client.js"></script>
