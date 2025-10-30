@@ -1,13 +1,14 @@
 window.STOPS = {
+  // Line A strict order (loop): Gate 1 → Gate 2.5 → Old Rizal Library → Xavier → Cervini → Old Comms → Loyola House of Studies → Gate 1
   lineA: [
     { name: 'Gate 1 E-Jeep Station', coords: [14.634644, 121.075036] },
-    { name: 'AGS E-Jeep Station', coords: [14.637709, 121.076327] },
     { name: 'Gate 2.5 E-Jeep Station', coords: [14.637709, 121.076327] },
-    { name: 'Leong Hall E-Jeep Station', coords: [14.640845, 121.076276] },
+    { name: 'Old Rizal Library E-Jeep Station', coords: [14.640339, 121.077142] },
     { name: 'Xavier Hall E-Jeep Station', coords: [14.640081, 121.078496] },
     { name: 'Cervini Hall E-Jeep Station', coords: [14.639123, 121.080127] },
     { name: 'Old Comms Building E-Jeep Station', coords: [14.636607, 121.078187] },
-    { name: 'Loyola House of Studies E-Jeep Station', coords: [14.636365, 121.080766] }
+    { name: 'Loyola House of Studies E-Jeep Station', coords: [14.636365, 121.080766] },
+    { name: 'Gate 1 E-Jeep Station', coords: [14.634644, 121.075036] }
   ],
   lineB: [
     { name: 'Arete E-Jeep Station', coords: [14.640693, 121.075704] },

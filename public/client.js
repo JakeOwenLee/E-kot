@@ -66,13 +66,22 @@ function haversineMeters([lat1, lon1], [lat2, lon2]) {
 
 function nearestStopName(lat, lon) {
   if (!window.STOPS) return 'Unknown';
-  let best = { name: 'Unknown', dist: Infinity };
-  const all = [...(window.STOPS.lineA || []), ...(window.STOPS.lineB || [])];
-  for (const s of all) {
-    const d = haversineMeters([lat, lon], s.coords);
-    if (d < best.dist) best = { name: s.name, dist: d };
+  const lineA = window.STOPS.lineA || [];
+  const lineB = window.STOPS.lineB || [];
+
+  function nearest(list) {
+    let best = { name: 'Unknown', dist: Infinity };
+    for (const s of list) {
+      const d = haversineMeters([lat, lon], s.coords);
+      if (d < best.dist) best = { name: s.name, dist: d };
+    }
+    return best;
   }
-  return best.name;
+
+  const a = nearest(lineA);
+  if (a.dist !== Infinity) return a.name;
+  const b = nearest(lineB);
+  return b.name;
 }
 
 function updateUI(data) {
@@ -83,7 +92,7 @@ function updateUI(data) {
   const lon = data.longitude;
   document.getElementById('current-location').textContent = 
     `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
-  const nearest = data.nearestStop && data.nearestStop !== 'Unknown'
+  const nearest = (data.nearestStop && data.nearestStop !== 'Unknown' && data.nearestStop !== 'Phone GPS')
     ? data.nearestStop
     : nearestStopName(lat, lon);
   document.getElementById('nearest-stop').textContent = nearest;
@@ -99,7 +108,7 @@ socket.on('connect', () => {
 function buildJeepIcon(labelNumber) {
   const number = labelNumber || 1;
   const html = `
-    <div style="position:relative;width:28px;height:28px;border-radius:50%;background:#0a66c2;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);background-image:url('img/ejeep-logo.png');background-size:cover;background-position:center;">
+    <div style=\"position:relative;width:28px;height:28px;border-radius:50%;background:#0a66c2;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);\">
       <div style="position:absolute;top:-6px;right:-6px;background:#003a6c;color:#fff;width:18px;height:18px;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;border:1px solid #fff;">${number}</div>
     </div>`;
   return L.divIcon({ className: 'jeep-badge-icon', html, iconSize: [28, 28], iconAnchor: [14, 14] });
