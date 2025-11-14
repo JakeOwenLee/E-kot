@@ -82,6 +82,7 @@
     let map;
     let jeepMarkers = {};
     let stopMarkers = [];
+    let stopsLayer;
     let lineALayer, lineADecorator;
     const LINE_A_COLOR = '#1e90ff';
 
@@ -134,6 +135,8 @@
         attribution: '&copy; OpenStreetMap contributors'
       }).addTo(map);
 
+      stopsLayer = L.layerGroup().addTo(map);
+
       const route = window.routes.lineA;
 
       // Detect and draw overlapping segments in yellow first (so blue goes on top)
@@ -169,9 +172,9 @@
       turnPoints.forEach(turn => {
         const turnIcon = L.divIcon({
           className: 'turn-arrow',
-          html: '<div style="background:#1e90ff;color:#fff;padding:2px 6px;border-radius:4px;font-weight:bold;font-size:12px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">&gt;&gt;&gt;</div>',
-          iconSize: [40, 20],
-          iconAnchor: [20, 10]
+          html: '<div style="background:#1e90ff;color:#fff;padding:2px 8px;border-radius:999px;font-weight:bold;font-size:12px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">- - - - -</div>',
+          iconSize: [50, 20],
+          iconAnchor: [25, 10]
         });
         L.marker(turn.point, { icon: turnIcon }).addTo(map);
       });
@@ -203,15 +206,17 @@
         window.STOPS.lineA.forEach((stop, idx) => {
           // Snap stop to nearest route point
           const snappedCoords = findClosestRoutePoint(stop.coords, route);
-          const marker = L.marker(snappedCoords, { 
+          const marker = L.marker(snappedCoords, {
             icon: STOP_ICON_A,
             zIndexOffset: 1000 // Make stops appear on top
           })
-            .addTo(map)
+            .addTo(stopsLayer)
             .bindPopup(`<strong>${stop.name}</strong>`);
           stopMarkers.push(marker);
         });
       }
+
+      L.control.layers(null, { 'Line A Stops': stopsLayer }).addTo(map);
     }
 
     // Build jeep icon
