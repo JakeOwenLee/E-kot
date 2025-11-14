@@ -84,6 +84,7 @@
     let stopMarkers = [];
     let lineBLayer, lineBDecorator;
     const LINE_B_COLOR = '#e53e3e';
+    let latestLocation = null;
 
     // Find closest point on route for a given coordinate
     function findClosestRoutePoint(point, route) {
@@ -172,14 +173,19 @@
 
       if (window.STOPS && window.STOPS.lineB) {
         window.STOPS.lineB.forEach((stop, idx) => {
-          // Snap stop to nearest route point
           const snappedCoords = findClosestRoutePoint(stop.coords, route);
           const marker = L.marker(snappedCoords, {
             icon: createStopIcon(idx + 1),
-            zIndexOffset: 1000 // Make stops appear on top
-          })
-            .addTo(map)
-            .bindPopup(`<strong>${stop.name}</strong>`);
+            zIndexOffset: 1000
+          }).addTo(map);
+
+          marker.bindTooltip(stop.name, { direction: 'top', offset: [0, -12] });
+
+          marker.on('click', () => {
+            const etaMessage = describeStopEta(stop);
+            marker.bindPopup(`<strong>${stop.name}</strong><br>${etaMessage}`).openPopup();
+          });
+
           stopMarkers.push(marker);
         });
       }
@@ -347,12 +353,44 @@
       return etas;
     }
 
+    function describeStopEta(stop) {
+      if (!latestLocation) {
+        return 'No live tracking data yet.';
+      }
+
+      const route = window.routes.lineB;
+      const avgSpeed = 15;
+      const current = findClosestPointOnRoute([latestLocation.lat, latestLocation.lon], route);
+      const stopRoute = findClosestPointOnRoute(stop.coords, route);
+
+      let routeDist;
+      let status;
+      if (stopRoute.segmentIndex >= current.segmentIndex) {
+        routeDist = distanceAlongRoute(route, current.segmentIndex, stopRoute.segmentIndex);
+        status = 'On the way';
+      } else {
+        routeDist = distanceAlongRoute(route, current.segmentIndex, route.length - 1) +
+          distanceAlongRoute(route, 0, stopRoute.segmentIndex);
+        status = 'Looping back';
+      }
+
+      if (routeDist < 30) {
+        return 'Arriving now.';
+      }
+
+      const minutes = Math.max(1, Math.round((routeDist / 1000 / avgSpeed) * 60));
+      return status === 'On the way'
+        ? `ETA: about ${minutes} min.`
+        : `Just passed. ETA after loop: about ${minutes} min.`;
+    }
+
     // Update UI
     function updateUI(data) {
       document.getElementById('jeep-info').style.display = 'block';
       document.getElementById('jeep-id').textContent = data.jeepId;
       const lat = data.latitude;
       const lon = data.longitude;
+      latestLocation = { lat, lon };
       document.getElementById('current-location').textContent = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
       document.getElementById('nearest-stop').textContent = nearestStopName(lat, lon);
       document.getElementById('last-update').textContent = new Date(data.timestamp).toLocaleTimeString();
