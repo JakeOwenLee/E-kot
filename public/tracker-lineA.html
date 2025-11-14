@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Line A Tracker - E-Kot</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background: #f7f7f7;
+    }
+  </style>
 </head>
 <body>
   <div id="login-screen" class="login-container">
@@ -20,31 +25,23 @@
           <input type="password" id="password" required>
         </div>
         <button type="submit" class="login-btn">Login</button>
-        <div id="login-error" style="color: #e53e3e; margin-top: 1rem; text-align: center; display: none;"></div>
+        <div id="login-error" style="color: #e53e3e; margin-top: 1rem; text-align: center; display: none; font-weight: 600;">No access</div>
       </form>
     </div>
   </div>
 
-  <div id="tracker-screen" style="display: none;">
-    <div class="container">
-      <header>
-        <h1>E-Kot - Line A Tracker</h1>
-        <p>Jeep 1/6 in Fleet</p>
-      </header>
-      
-      <div style="padding: 2rem; max-width: 600px; margin: 0 auto;">
-        <div class="tracker-controls">
-          <button id="start-btn" class="toggle-btn start">Start Tracking</button>
-          <button id="stop-btn" class="toggle-btn stop" disabled>Stop Tracking</button>
-          <div id="status" style="margin-top: 1rem; text-align: center; color: #666; font-size: 0.875rem;">Not Tracking</div>
-        </div>
+  <div id="tracker-screen" style="display: none; padding: 3rem; max-width: 500px; margin: 0 auto; min-height: 100vh; align-items: center; justify-content: center;">
+    <div style="width: 100%;">
+      <div class="tracker-controls">
+        <button id="start-btn" class="toggle-btn start">TRACK</button>
+        <button id="stop-btn" class="toggle-btn stop" disabled>END TRACKING</button>
       </div>
     </div>
   </div>
 
   <script>
     const JEEP_ID = 'LINE-A-001';
-    const CORRECT_PASSWORD = 'linea2024'; // Change this to your desired password
+    const CORRECT_PASSWORD = 'linea2024';
 
     let watchId = null;
     let isTracking = false;
@@ -57,16 +54,16 @@
 
       if (password === CORRECT_PASSWORD) {
         document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('tracker-screen').style.display = 'block';
+        const trackerScreen = document.getElementById('tracker-screen');
+        trackerScreen.style.display = 'flex';
       } else {
-        errorDiv.textContent = 'Invalid credentials';
+        errorDiv.textContent = 'No access';
         errorDiv.style.display = 'block';
       }
     });
 
     const startBtn = document.getElementById('start-btn');
     const stopBtn = document.getElementById('stop-btn');
-    const statusDiv = document.getElementById('status');
 
     async function sendLocation(latitude, longitude) {
       try {
@@ -96,8 +93,6 @@
           const { latitude, longitude } = position.coords;
           if (!isTracking) {
             isTracking = true;
-            statusDiv.textContent = 'Tracking Active';
-            statusDiv.style.color = '#2e7d32';
             startBtn.disabled = true;
             stopBtn.disabled = false;
           }
@@ -117,8 +112,6 @@
         watchId = null;
       }
       isTracking = false;
-      statusDiv.textContent = 'Not Tracking';
-      statusDiv.style.color = '#666';
       startBtn.disabled = false;
       stopBtn.disabled = true;
 
@@ -134,4 +127,3 @@
   </script>
 </body>
 </html>
-

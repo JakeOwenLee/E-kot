@@ -5,16 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>E-Kot - Live ADMU E-Jeep Tracker</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background: #ffffff;
+    }
+    .plain-home {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    .plain-home h1 {
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      color: #1a1a1a;
+    }
+    .route-buttons {
+      display: flex;
+      gap: 1rem;
+    }
+  </style>
 </head>
 <body>
-  <div class="landing-container">
-    <div class="landing-card">
-      <h1>E-Kot</h1>
-      <p>Live ADMU E-Jeep Tracker Prototype Project</p>
-      <div class="route-buttons">
-        <a href="/route-lineA.html" class="route-btn route-btn-linea">Line A Route</a>
-        <a href="/route-lineB.html" class="route-btn route-btn-lineb">Line B Route</a>
-      </div>
+  <div class="plain-home">
+    <h1>E-Kot</h1>
+    <div class="route-buttons">
+      <a href="/route-lineA.html" class="route-btn route-btn-linea">Line A Route</a>
+      <a href="/route-lineB.html" class="route-btn route-btn-lineb">Line B Route</a>
     </div>
   </div>
 </body>

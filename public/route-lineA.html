@@ -113,16 +113,19 @@
         }]
       }).addTo(map);
 
-      // Render stops
+      // Render stops with proper icons
+      const STOP_ICON_A = L.divIcon({
+        className: 'stop-icon-a',
+        html: '<div style="background:#1e90ff;color:#fff;padding:4px 8px;border-radius:12px;font-weight:600;box-shadow:0 1px 6px rgba(0,0,0,0.2)">A</div>',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+
       if (window.STOPS && window.STOPS.lineA) {
         window.STOPS.lineA.forEach(stop => {
-          const marker = L.circleMarker(stop.coords, {
-            radius: 8,
-            weight: 2,
-            color: LINE_A_COLOR,
-            fillColor: '#ffffff',
-            fillOpacity: 1
-          }).addTo(map).bindPopup(`<strong>${stop.name}</strong>`);
+          const marker = L.marker(stop.coords, { icon: STOP_ICON_A })
+            .addTo(map)
+            .bindPopup(`<strong>${stop.name}</strong>`);
           stopMarkers.push(marker);
         });
       }
