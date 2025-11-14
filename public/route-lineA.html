@@ -113,24 +113,30 @@
         }]
       }).addTo(map);
 
-      // Render stops with proper icons
-      const STOP_ICON_A = L.divIcon({
-        className: 'stop-icon-a',
-        html: '<div style="background:#1e90ff;color:#fff;padding:4px 8px;border-radius:12px;font-weight:600;box-shadow:0 1px 6px rgba(0,0,0,0.2)">A</div>',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
-      });
-
-      if (window.STOPS && window.STOPS.lineA) {
-        window.STOPS.lineA.forEach(stop => {
-          const marker = L.marker(stop.coords, { icon: STOP_ICON_A })
-            .addTo(map)
-            .bindPopup(`<strong>${stop.name}</strong>`);
-          stopMarkers.push(marker);
-        });
-      }
-
       map.fitBounds(lineALayer.getBounds());
+      
+      // Render stops with proper icons (after map is ready)
+      setTimeout(() => {
+        const STOP_ICON_A = L.divIcon({
+          className: 'stop-icon-a',
+          html: '<div style="background:#1e90ff;color:#fff;padding:4px 8px;border-radius:12px;font-weight:600;box-shadow:0 1px 6px rgba(0,0,0,0.2)">A</div>',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        });
+
+        if (window.STOPS && window.STOPS.lineA) {
+          console.log('Rendering stops:', window.STOPS.lineA.length);
+          window.STOPS.lineA.forEach((stop, idx) => {
+            const marker = L.marker(stop.coords, { icon: STOP_ICON_A })
+              .addTo(map)
+              .bindPopup(`<strong>${stop.name}</strong>`);
+            stopMarkers.push(marker);
+            console.log(`Stop ${idx + 1}: ${stop.name} at ${stop.coords}`);
+          });
+        } else {
+          console.error('STOPS not loaded:', window.STOPS);
+        }
+      }, 100);
     }
 
     // Build jeep icon
@@ -164,25 +170,143 @@
       return best.name;
     }
 
-    // Calculate ETA to next stops
-    function calculateETAs(lat, lon) {
-      if (!window.STOPS || !window.STOPS.lineA) return [];
-      const stops = window.STOPS.lineA;
-      const currentStop = nearestStopName(lat, lon);
-      const currentIndex = stops.findIndex(s => s.name === currentStop);
+    // Find closest point on route polyline
+    function findClosestPointOnRoute(point, route) {
+      let minDist = Infinity;
+      let closestIndex = 0;
+      let closestPoint = route[0];
       
-      if (currentIndex === -1) return [];
+      for (let i = 0; i < route.length - 1; i++) {
+        const p1 = route[i];
+        const p2 = route[i + 1];
+        const dist = pointToLineDistance(point, p1, p2);
+        if (dist < minDist) {
+          minDist = dist;
+          closestIndex = i;
+          // Project point onto segment
+          const t = projectPointOnSegment(point, p1, p2);
+          closestPoint = [
+            p1[0] + t * (p2[0] - p1[0]),
+            p1[1] + t * (p2[1] - p1[1])
+          ];
+        }
+      }
+      return { point: closestPoint, segmentIndex: closestIndex };
+    }
+
+    function pointToLineDistance(point, lineStart, lineEnd) {
+      const A = point[0] - lineStart[0];
+      const B = point[1] - lineStart[1];
+      const C = lineEnd[0] - lineStart[0];
+      const D = lineEnd[1] - lineStart[1];
+      const dot = A * C + B * D;
+      const lenSq = C * C + D * D;
+      const param = lenSq !== 0 ? dot / lenSq : -1;
+      let xx, yy;
+      if (param < 0) {
+        xx = lineStart[0];
+        yy = lineStart[1];
+      } else if (param > 1) {
+        xx = lineEnd[0];
+        yy = lineEnd[1];
+      } else {
+        xx = lineStart[0] + param * C;
+        yy = lineStart[1] + param * D;
+      }
+      const dx = point[0] - xx;
+      const dy = point[1] - yy;
+      return Math.sqrt(dx * dx + dy * dy) * 111000; // rough meters
+    }
+
+    function projectPointOnSegment(point, lineStart, lineEnd) {
+      const A = point[0] - lineStart[0];
+      const B = point[1] - lineStart[1];
+      const C = lineEnd[0] - lineStart[0];
+      const D = lineEnd[1] - lineStart[1];
+      const dot = A * C + B * D;
+      const lenSq = C * C + D * D;
+      return lenSq !== 0 ? Math.max(0, Math.min(1, dot / lenSq)) : 0;
+    }
+
+    // Calculate distance along route from point A to point B
+    function distanceAlongRoute(route, startIndex, endIndex) {
+      let totalDist = 0;
+      for (let i = startIndex; i < endIndex && i < route.length - 1; i++) {
+        totalDist += haversineMeters(route[i], route[i + 1]);
+      }
+      return totalDist;
+    }
+
+    // Find which stop is closest on the route (not just nearest geographically)
+    function findCurrentStopOnRoute(lat, lon) {
+      if (!window.STOPS || !window.STOPS.lineA || !window.routes || !window.routes.lineA) return null;
+      
+      const route = window.routes.lineA;
+      const stops = window.STOPS.lineA;
+      const closest = findClosestPointOnRoute([lat, lon], route);
+      
+      // Find which stop's coordinate is closest to the route position
+      let bestStop = null;
+      let minRouteDist = Infinity;
+      
+      stops.forEach((stop, stopIdx) => {
+        // Find stop's position on route
+        const stopOnRoute = findClosestPointOnRoute(stop.coords, route);
+        const routeDist = Math.abs(stopOnRoute.segmentIndex - closest.segmentIndex);
+        
+        // If stop is ahead on route
+        if (stopOnRoute.segmentIndex >= closest.segmentIndex && routeDist < minRouteDist) {
+          minRouteDist = routeDist;
+          bestStop = { stop, index: stopIdx, routeIndex: stopOnRoute.segmentIndex };
+        }
+      });
+      
+      return bestStop || { stop: stops[0], index: 0, routeIndex: 0 };
+    }
+
+    // Calculate ETA to next stops along route
+    function calculateETAs(lat, lon) {
+      if (!window.STOPS || !window.STOPS.lineA || !window.routes || !window.routes.lineA) return [];
+      
+      const route = window.routes.lineA;
+      const stops = window.STOPS.lineA;
+      const current = findClosestPointOnRoute([lat, lon], route);
+      const currentStopInfo = findCurrentStopOnRoute(lat, lon);
+      
+      if (!currentStopInfo) return [];
       
       const etas = [];
       const avgSpeed = 15; // km/h
+      const currentRouteIndex = current.segmentIndex;
+      const currentStopRouteIndex = currentStopInfo.routeIndex;
       
-      // Get next 3 stops
-      for (let i = 1; i <= 3; i++) {
-        const nextIndex = (currentIndex + i) % stops.length;
-        const stop = stops[nextIndex];
-        const dist = haversineMeters([lat, lon], stop.coords) / 1000; // km
-        const time = Math.round((dist / avgSpeed) * 60); // minutes
-        etas.push({ name: stop.name, time });
+      // Determine if we've passed the current stop
+      let startStopIndex = currentStopInfo.index;
+      if (currentRouteIndex > currentStopRouteIndex + 5) {
+        // We've passed this stop, move to next
+        startStopIndex = (currentStopInfo.index + 1) % stops.length;
+      }
+      
+      // Get next 3 stops in route order
+      for (let i = 0; i < 3; i++) {
+        const nextStopIdx = (startStopIndex + i) % stops.length;
+        const nextStop = stops[nextStopIdx];
+        const nextStopOnRoute = findClosestPointOnRoute(nextStop.coords, route);
+        
+        // Calculate distance along route
+        let routeDist = 0;
+        if (nextStopOnRoute.segmentIndex >= currentRouteIndex) {
+          routeDist = distanceAlongRoute(route, currentRouteIndex, nextStopOnRoute.segmentIndex);
+        } else {
+          // Wrapped around (loop)
+          routeDist = distanceAlongRoute(route, currentRouteIndex, route.length - 1) +
+                     distanceAlongRoute(route, 0, nextStopOnRoute.segmentIndex);
+        }
+        
+        const time = Math.round((routeDist / 1000 / avgSpeed) * 60); // minutes
+        if (time > 0) {
+          etas.push({ name: nextStop.name, time });
+        }
       }
       
       return etas;
@@ -209,12 +333,14 @@
       const etas = calculateETAs(lat, lon);
       const etaList = document.getElementById('eta-list');
       if (etas.length > 0) {
-        etaList.innerHTML = etas.map(eta => `
+        etaList.innerHTML = etas.map((eta, idx) => `
           <div class="eta-item">
-            <span class="eta-stop-name">${eta.name}</span>
+            <span class="eta-stop-name">${idx === 0 ? 'Next: ' : 'Then: '}${eta.name}</span>
             <span class="eta-time">${eta.time} min</span>
           </div>
         `).join('');
+      } else {
+        etaList.innerHTML = '<div class="eta-item"><span class="eta-stop-name">Calculating...</span><span class="eta-time">-</span></div>';
       }
     }
 
