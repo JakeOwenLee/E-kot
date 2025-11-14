@@ -11,6 +11,20 @@
       height: calc(100vh - 80px);
       width: 100%;
     }
+    .stop-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #fff;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      font-size: 14px;
+      background: #1e90ff;
+    }
   </style>
 </head>
 <body class="line-a">
@@ -124,6 +138,9 @@
         attribution: '&copy; OpenStreetMap contributors'
       }).addTo(map);
 
+      const stopsPane = map.createPane('stopsPane');
+      stopsPane.style.zIndex = 650;
+
       const route = window.routes.lineA;
 
       // Detect and draw overlapping segments in yellow first (so blue goes on top)
@@ -177,6 +194,7 @@
           const snappedCoords = findClosestRoutePoint(stop.coords, route);
           const marker = L.marker(snappedCoords, {
             icon: createStopIcon(idx + 1),
+            pane: 'stopsPane',
             zIndexOffset: 1000 // Make stops appear on top
           }).addTo(map);
 

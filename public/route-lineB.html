@@ -11,6 +11,20 @@
       height: calc(100vh - 80px);
       width: 100%;
     }
+    .stop-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #fff;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      font-size: 14px;
+      background: #e53e3e;
+    }
   </style>
 </head>
 <body class="line-b">
@@ -125,6 +139,8 @@
       }).addTo(map);
 
       const route = window.routes.lineB;
+      const stopsPane = map.createPane('stopsPaneB');
+      stopsPane.style.zIndex = 650;
 
       // Detect and draw overlapping segments in yellow first (so red goes on top)
       const overlaps = findOverlappingSegments(route);
@@ -176,6 +192,7 @@
           const snappedCoords = findClosestRoutePoint(stop.coords, route);
           const marker = L.marker(snappedCoords, {
             icon: createStopIcon(idx + 1),
+            pane: 'stopsPaneB',
             zIndexOffset: 1000
           }).addTo(map);
 
