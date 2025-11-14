@@ -1,139 +1,266 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Line A Route - E-Kot</title>
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
-    <link rel="stylesheet" href="style.css">
-    <style>
-      #map {
-        height: calc(100vh - 120px);
-        width: 100%;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <header>
-        <h1>E-Kot</h1>
-        <p>Line A Route Preview</p>
-        <nav>
-          <a href="/">View Tracker</a>
-          <a href="/route-lineA.html" class="active">Line A Route</a>
-          <a href="/route-lineB.html">Line B Route</a>
-        </nav>
-      </header>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Line A Route - E-Kot</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css">
+  <style>
+    #map {
+      height: calc(100vh - 80px);
+      width: 100%;
+    }
+  </style>
+</head>
+<body class="line-a">
+  <div class="container">
+    <header>
+      <h1>E-Kot</h1>
+      <p>Line A Route - Live Tracking</p>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/route-lineA.html" class="active">Line A</a>
+        <a href="/route-lineB.html">Line B</a>
+      </nav>
+    </header>
+    
+    <div class="main-content">
+      <div class="info-panel">
+        <h2>Line A Status</h2>
+        
+        <div class="fleet-info">Jeep 1/6 in Fleet</div>
+        
+        <div class="status-card">
+          <div class="status-indicator">
+            <span class="status-dot" id="status-dot"></span>
+            <span class="status-text" id="status-text">Waiting for GPS data...</span>
+          </div>
+          
+          <div id="jeep-info" style="display: none;">
+            <div class="info-item">
+              <span class="label">Jeep ID:</span>
+              <span id="jeep-id" class="value">-</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Current Location:</span>
+              <span id="current-location" class="value">-</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Nearest Stop:</span>
+              <span id="nearest-stop" class="value">-</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Last Update:</span>
+              <span id="last-update" class="value">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="eta-section">
+          <h3>Estimated Arrival</h3>
+          <div id="eta-list">
+            <div class="eta-item">
+              <span class="eta-stop-name">No active tracking</span>
+              <span class="eta-time">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div id="map"></div>
     </div>
+  </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-polylinedecorator@1.7.0/dist/leaflet.polylineDecorator.min.js"></script>
-    <script src="routes.js"></script>
-    <script>
-      // === Leaflet map init ===
-      const map = L.map("map").setView([14.639, 121.078], 16);
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-polylinedecorator@1.7.0/dist/leaflet.polylineDecorator.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="routes.js"></script>
+  <script src="stops.js"></script>
+  <script>
+    const socket = io();
+    let map;
+    let jeepMarkers = {};
+    let stopMarkers = [];
+    let lineALayer, lineADecorator;
+    const LINE_A_COLOR = '#1e90ff';
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    // Initialize map
+    function initMap() {
+      map = L.map('map').setView([14.639, 121.078], 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        attribution: "&copy; OpenStreetMap contributors"
+        attribution: '&copy; OpenStreetMap contributors'
       }).addTo(map);
 
-      // === Draw Line A: bright blue dashed (Grab-style) ===
-      const lineALayer = L.polyline(window.routes.lineA, {
-        color: "#1e90ff", // bright blue
+      // Draw Line A route
+      lineALayer = L.polyline(window.routes.lineA, {
+        color: LINE_A_COLOR,
         weight: 5,
-        dashArray: "8 8"
+        dashArray: '8 8'
       }).addTo(map);
 
-      // === Add arrowheads to Line A ===
-      const lineADecorator = L.polylineDecorator(lineALayer, {
-        patterns: [
-          {
-            offset: '5%',
-            repeat: '10%',
-            symbol: L.Symbol.arrowHead({
-              pixelSize: 10,
-              polygon: false,
-              pathOptions: {
-                color: '#1e90ff',
-                weight: 3
-              }
-            })
-          }
-        ]
+      // Add arrowheads
+      lineADecorator = L.polylineDecorator(lineALayer, {
+        patterns: [{
+          offset: '5%',
+          repeat: '10%',
+          symbol: L.Symbol.arrowHead({
+            pixelSize: 10,
+            polygon: false,
+            pathOptions: { color: LINE_A_COLOR, weight: 3 }
+          })
+        }]
       }).addTo(map);
 
-      // === Define stops for Line A (sample stops along the route) ===
-      const lineAStops = [
-        { name: 'Gate 1', coord: window.routes.lineA[0], index: 0 },
-        { name: 'Gate 2.5', coord: window.routes.lineA[40], index: 40 },
-        { name: 'Leong Hall', coord: [14.640845, 121.076276], index: 80 },
-        { name: 'Xavier Hall', coord: window.routes.lineA[100], index: 100 },
-        { name: 'Cervini Hall', coord: window.routes.lineA[120], index: 120 },
-        { name: 'Old Comms', coord: window.routes.lineA[140], index: 140 },
-        { name: 'Loyola House', coord: window.routes.lineA[160], index: 160 }
-      ];
-
-      // === Track current highlight ===
-      let currentHighlight = null;
-      let currentHighlightDecorator = null;
-
-      // === Create stop markers ===
-      lineAStops.forEach(stop => {
-        const marker = L.circleMarker(stop.coord, {
-          radius: 6,
-          weight: 2,
-          color: '#1e90ff',
-          fillColor: '#ffffff',
-          fillOpacity: 1
-        })
-          .addTo(map)
-          .bindPopup(stop.name);
-
-        // === Click handler to highlight route to stop ===
-        marker.on('click', function() {
-          // Remove previous highlight
-          if (currentHighlight) {
-            map.removeLayer(currentHighlight);
-            if (currentHighlightDecorator) {
-              map.removeLayer(currentHighlightDecorator);
-            }
-          }
-
-          // Create highlight polyline from start to this stop
-          const segment = window.routes.lineA.slice(0, stop.index + 1);
-          currentHighlight = L.polyline(segment, {
-            color: '#1e90ff',
-            weight: 6,
-            opacity: 0.8
-          }).addTo(map);
-
-          // Add arrowheads to highlight
-          currentHighlightDecorator = L.polylineDecorator(currentHighlight, {
-            patterns: [
-              {
-                offset: '5%',
-                repeat: '10%',
-                symbol: L.Symbol.arrowHead({
-                  pixelSize: 12,
-                  polygon: false,
-                  pathOptions: {
-                    color: '#1e90ff',
-                    weight: 4
-                  }
-                })
-              }
-            ]
-          }).addTo(map);
+      // Render stops
+      if (window.STOPS && window.STOPS.lineA) {
+        window.STOPS.lineA.forEach(stop => {
+          const marker = L.circleMarker(stop.coords, {
+            radius: 8,
+            weight: 2,
+            color: LINE_A_COLOR,
+            fillColor: '#ffffff',
+            fillOpacity: 1
+          }).addTo(map).bindPopup(`<strong>${stop.name}</strong>`);
+          stopMarkers.push(marker);
         });
-      });
+      }
 
-      // Fit map to Line A route
       map.fitBounds(lineALayer.getBounds());
-    </script>
-  </body>
-</html>
+    }
 
+    // Build jeep icon
+    function buildJeepIcon(labelNumber) {
+      const number = labelNumber || 1;
+      const html = `
+        <div style="position:relative;width:32px;height:32px;border-radius:50%;background-image:url('img/ejeep-logo.png');background-size:cover;background-position:center;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+          <div style="position:absolute;top:-8px;right:-8px;background:#1e90ff;color:#fff;width:20px;height:20px;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;font-weight:bold;">${number}</div>
+        </div>`;
+      return L.divIcon({ className: 'jeep-badge-icon', html, iconSize: [32, 32], iconAnchor: [16, 16] });
+    }
+
+    // Calculate distance
+    function haversineMeters([lat1, lon1], [lat2, lon2]) {
+      const R = 6371000;
+      const toRad = d => d * Math.PI / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat/2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2) ** 2;
+      return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    // Find nearest stop
+    function nearestStopName(lat, lon) {
+      if (!window.STOPS || !window.STOPS.lineA) return 'Unknown';
+      let best = { name: 'Unknown', dist: Infinity };
+      window.STOPS.lineA.forEach(s => {
+        const d = haversineMeters([lat, lon], s.coords);
+        if (d < best.dist) best = { name: s.name, dist: d };
+      });
+      return best.name;
+    }
+
+    // Calculate ETA to next stops
+    function calculateETAs(lat, lon) {
+      if (!window.STOPS || !window.STOPS.lineA) return [];
+      const stops = window.STOPS.lineA;
+      const currentStop = nearestStopName(lat, lon);
+      const currentIndex = stops.findIndex(s => s.name === currentStop);
+      
+      if (currentIndex === -1) return [];
+      
+      const etas = [];
+      const avgSpeed = 15; // km/h
+      
+      // Get next 3 stops
+      for (let i = 1; i <= 3; i++) {
+        const nextIndex = (currentIndex + i) % stops.length;
+        const stop = stops[nextIndex];
+        const dist = haversineMeters([lat, lon], stop.coords) / 1000; // km
+        const time = Math.round((dist / avgSpeed) * 60); // minutes
+        etas.push({ name: stop.name, time });
+      }
+      
+      return etas;
+    }
+
+    // Update UI
+    function updateUI(data) {
+      document.getElementById('jeep-info').style.display = 'block';
+      document.getElementById('jeep-id').textContent = data.jeepId;
+      const lat = data.latitude;
+      const lon = data.longitude;
+      document.getElementById('current-location').textContent = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+      document.getElementById('nearest-stop').textContent = nearestStopName(lat, lon);
+      document.getElementById('last-update').textContent = new Date(data.timestamp).toLocaleTimeString();
+      
+      // Update status
+      const dot = document.getElementById('status-dot');
+      const text = document.getElementById('status-text');
+      dot.className = 'status-dot active';
+      text.textContent = 'Tracking Active';
+      text.style.color = '#2e7d32';
+
+      // Update ETAs
+      const etas = calculateETAs(lat, lon);
+      const etaList = document.getElementById('eta-list');
+      if (etas.length > 0) {
+        etaList.innerHTML = etas.map(eta => `
+          <div class="eta-item">
+            <span class="eta-stop-name">${eta.name}</span>
+            <span class="eta-time">${eta.time} min</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Socket handlers
+    socket.on('connect', () => console.log('Connected'));
+
+    socket.on('initialLocations', (locations) => {
+      const lineAJeeps = Object.keys(locations).filter(id => id.startsWith('LINE-A'));
+      lineAJeeps.forEach((id, idx) => {
+        const d = locations[id];
+        const icon = buildJeepIcon(idx + 1);
+        const marker = L.marker([d.latitude, d.longitude], { icon }).addTo(map);
+        jeepMarkers[id] = marker;
+        if (idx === 0) {
+          map.setView([d.latitude, d.longitude], 17);
+          updateUI(d);
+        }
+      });
+    });
+
+    socket.on('locationUpdate', (data) => {
+      if (!data.jeepId.startsWith('LINE-A')) return;
+      const id = data.jeepId;
+      const pos = [data.latitude, data.longitude];
+      if (!jeepMarkers[id]) {
+        const icon = buildJeepIcon(1);
+        jeepMarkers[id] = L.marker(pos, { icon }).addTo(map);
+      } else {
+        jeepMarkers[id].setLatLng(pos);
+      }
+      updateUI(data);
+    });
+
+    socket.on('locationRemove', ({ jeepId }) => {
+      if (!jeepId.startsWith('LINE-A')) return;
+      const marker = jeepMarkers[jeepId];
+      if (marker) {
+        marker.remove();
+        delete jeepMarkers[jeepId];
+      }
+      if (Object.keys(jeepMarkers).length === 0) {
+        document.getElementById('jeep-info').style.display = 'none';
+        document.getElementById('status-dot').className = 'status-dot';
+        document.getElementById('status-text').textContent = 'Waiting for GPS data...';
+        document.getElementById('eta-list').innerHTML = '<div class="eta-item"><span class="eta-stop-name">No active tracking</span><span class="eta-time">-</span></div>';
+      }
+    });
+
+    initMap();
+  </script>
+</body>
+</html>

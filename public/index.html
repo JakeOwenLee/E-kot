@@ -3,56 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>E-Kot - Live ADMU E-Jeep Tracker Prototype Project</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <title>E-Kot - Live ADMU E-Jeep Tracker</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <header>
+  <div class="landing-container">
+    <div class="landing-card">
       <h1>E-Kot</h1>
       <p>Live ADMU E-Jeep Tracker Prototype Project</p>
-      <nav>
-        <a href="/" class="active">View Tracker</a>
-        <a href="/route-lineA.html">Line A Route</a>
-        <a href="/route-lineB.html">Line B Route</a>
-      </nav>
-    </header>
-    
-    <div class="main-content">
-      <div class="info-panel">
-        <h2>E-Jeep Status (Line A)</h2>
-        <div id="jeep-info">
-          <div class="info-item">
-            <span class="label">Jeep ID:</span>
-            <span id="jeep-id" class="value">-</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Status:</span>
-            <span id="status" class="value status-waiting">Waiting for GPS data...</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Current Location:</span>
-            <span id="current-location" class="value">-</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Nearest Stop:</span>
-            <span id="nearest-stop" class="value">-</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Last Update:</span>
-            <span id="last-update" class="value">-</span>
-          </div>
-        </div>
+      <div class="route-buttons">
+        <a href="/route-lineA.html" class="route-btn route-btn-linea">Line A Route</a>
+        <a href="/route-lineB.html" class="route-btn route-btn-lineb">Line B Route</a>
       </div>
-
-      <div id="map"></div>
     </div>
   </div>
-  
-  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="stops.js"></script>
-  <script src="client.js"></script>
 </body>
 </html>

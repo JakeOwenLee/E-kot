@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Line A Tracker - E-Kot</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="login-screen" class="login-container">
+    <div class="login-card">
+      <h2>Line A Tracker Login</h2>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username">Name:</label>
+          <input type="text" id="username" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password:</label>
+          <input type="password" id="password" required>
+        </div>
+        <button type="submit" class="login-btn">Login</button>
+        <div id="login-error" style="color: #e53e3e; margin-top: 1rem; text-align: center; display: none;"></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="tracker-screen" style="display: none;">
+    <div class="container">
+      <header>
+        <h1>E-Kot - Line A Tracker</h1>
+        <p>Jeep 1/6 in Fleet</p>
+      </header>
+      
+      <div style="padding: 2rem; max-width: 600px; margin: 0 auto;">
+        <div class="tracker-controls">
+          <button id="start-btn" class="toggle-btn start">Start Tracking</button>
+          <button id="stop-btn" class="toggle-btn stop" disabled>Stop Tracking</button>
+          <div id="status" style="margin-top: 1rem; text-align: center; color: #666; font-size: 0.875rem;">Not Tracking</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const JEEP_ID = 'LINE-A-001';
+    const CORRECT_PASSWORD = 'linea2024'; // Change this to your desired password
+
+    let watchId = null;
+    let isTracking = false;
+
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('login-error');
+
+      if (password === CORRECT_PASSWORD) {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('tracker-screen').style.display = 'block';
+      } else {
+        errorDiv.textContent = 'Invalid credentials';
+        errorDiv.style.display = 'block';
+      }
+    });
+
+    const startBtn = document.getElementById('start-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const statusDiv = document.getElementById('status');
+
+    async function sendLocation(latitude, longitude) {
+      try {
+        await fetch('/api/location/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jeepId: JEEP_ID,
+            latitude,
+            longitude,
+            timestamp: Date.now()
+          })
+        });
+      } catch (error) {
+        console.error('Error sending location:', error);
+      }
+    }
+
+    function startTracking() {
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported');
+        return;
+      }
+
+      watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          if (!isTracking) {
+            isTracking = true;
+            statusDiv.textContent = 'Tracking Active';
+            statusDiv.style.color = '#2e7d32';
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+          }
+          sendLocation(latitude, longitude);
+        },
+        (error) => {
+          alert('Error getting location: ' + error.message);
+          stopTracking();
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    }
+
+    function stopTracking() {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      isTracking = false;
+      statusDiv.textContent = 'Not Tracking';
+      statusDiv.style.color = '#666';
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+
+      fetch('/api/location/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jeepId: JEEP_ID })
+      }).catch(() => {});
+    }
+
+    startBtn.addEventListener('click', startTracking);
+    stopBtn.addEventListener('click', stopTracking);
+  </script>
+</body>
+</html>
+
