@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Line B Route - E-Kot</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="stylesheet" href="style.css">
+    <style>
+      #map {
+        height: calc(100vh - 120px);
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>E-Kot</h1>
+        <p>Line B Route Preview</p>
+        <nav>
+          <a href="/">View Tracker</a>
+          <a href="/route-lineA.html">Line A Route</a>
+          <a href="/route-lineB.html" class="active">Line B Route</a>
+        </nav>
+      </header>
+      <div id="map"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-polylinedecorator@1.7.0/dist/leaflet.polylineDecorator.min.js"></script>
+    <script src="routes.js"></script>
+    <script>
+      // === Leaflet map init ===
+      const map = L.map("map").setView([14.639, 121.078], 16);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors"
+      }).addTo(map);
+
+      // === Draw Line B: yellow dashed ===
+      const lineBLayer = L.polyline(window.routes.lineB, {
+        color: "#ffc800", // yellow-ish
+        weight: 4,
+        dashArray: "6 6"
+      }).addTo(map);
+
+      // === Add arrowheads to Line B ===
+      const lineBDecorator = L.polylineDecorator(lineBLayer, {
+        patterns: [
+          {
+            offset: '5%',
+            repeat: '10%',
+            symbol: L.Symbol.arrowHead({
+              pixelSize: 10,
+              polygon: false,
+              pathOptions: {
+                color: '#ffc800',
+                weight: 3
+              }
+            })
+          }
+        ]
+      }).addTo(map);
+
+      // === Define stops for Line B (sample stops along the route) ===
+      const lineBStops = [
+        { name: 'Arete', coord: window.routes.lineB[0], index: 0 },
+        { name: 'Bellarmine Hall', coord: window.routes.lineB[20], index: 20 },
+        { name: 'Social Dev Complex', coord: window.routes.lineB[40], index: 40 },
+        { name: 'Junior High School', coord: window.routes.lineB[60], index: 60 },
+        { name: 'Senior High FLC', coord: window.routes.lineB[80], index: 80 }
+      ];
+
+      // === Track current highlight ===
+      let currentHighlight = null;
+      let currentHighlightDecorator = null;
+
+      // === Create stop markers ===
+      lineBStops.forEach(stop => {
+        const marker = L.circleMarker(stop.coord, {
+          radius: 6,
+          weight: 2,
+          color: '#ffc800',
+          fillColor: '#ffffff',
+          fillOpacity: 1
+        })
+          .addTo(map)
+          .bindPopup(stop.name);
+
+        // === Click handler to highlight route to stop ===
+        marker.on('click', function() {
+          // Remove previous highlight
+          if (currentHighlight) {
+            map.removeLayer(currentHighlight);
+            if (currentHighlightDecorator) {
+              map.removeLayer(currentHighlightDecorator);
+            }
+          }
+
+          // Create highlight polyline from start to this stop
+          const segment = window.routes.lineB.slice(0, stop.index + 1);
+          currentHighlight = L.polyline(segment, {
+            color: '#ffc800',
+            weight: 6,
+            opacity: 0.8
+          }).addTo(map);
+
+          // Add arrowheads to highlight
+          currentHighlightDecorator = L.polylineDecorator(currentHighlight, {
+            patterns: [
+              {
+                offset: '5%',
+                repeat: '10%',
+                symbol: L.Symbol.arrowHead({
+                  pixelSize: 12,
+                  polygon: false,
+                  pathOptions: {
+                    color: '#ffc800',
+                    weight: 4
+                  }
+                })
+              }
+            ]
+          }).addTo(map);
+        });
+      });
+
+      // Fit map to Line B route
+      map.fitBounds(lineBLayer.getBounds());
+    </script>
+  </body>
+</html>
+

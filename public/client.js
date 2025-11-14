@@ -108,7 +108,7 @@ socket.on('connect', () => {
 function buildJeepIcon(labelNumber) {
   const number = labelNumber || 1;
   const html = `
-    <div style=\"position:relative;width:28px;height:28px;border-radius:50%;background:#0a66c2;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);\">
+    <div style="position:relative;width:28px;height:28px;border-radius:50%;background-image:url('img/ejeep-logo.png');background-size:cover;background-position:center;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
       <div style="position:absolute;top:-6px;right:-6px;background:#003a6c;color:#fff;width:18px;height:18px;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;border:1px solid #fff;">${number}</div>
     </div>`;
   return L.divIcon({ className: 'jeep-badge-icon', html, iconSize: [28, 28], iconAnchor: [14, 14] });
