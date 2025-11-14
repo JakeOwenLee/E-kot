@@ -99,17 +99,6 @@
       return closestPoint;
     }
 
-    // Calculate angle between two segments
-    function calculateAngle(p1, p2, p3) {
-      const v1 = [p2[0] - p1[0], p2[1] - p1[1]];
-      const v2 = [p3[0] - p2[0], p3[1] - p2[1]];
-      const dot = v1[0] * v2[0] + v1[1] * v2[1];
-      const mag1 = Math.sqrt(v1[0] * v1[0] + v1[1] * v1[1]);
-      const mag2 = Math.sqrt(v2[0] * v2[0] + v2[1] * v2[1]);
-      const angle = Math.acos(Math.max(-1, Math.min(1, dot / (mag1 * mag2))));
-      return angle * (180 / Math.PI);
-    }
-
     // Detect overlapping route segments
     function findOverlappingSegments(route, threshold = 0.0001) {
       const overlaps = [];
@@ -156,26 +145,6 @@
         dashArray: '8 8'
       }).addTo(map);
 
-      // Detect turns and add turn arrows
-      const turnPoints = [];
-      for (let i = 1; i < route.length - 1; i++) {
-        const angle = calculateAngle(route[i - 1], route[i], route[i + 1]);
-        if (angle < 150) { // Sharp turn (less than 150 degrees)
-          turnPoints.push({ point: route[i], angle });
-        }
-      }
-
-      // Add turn arrows
-      turnPoints.forEach(turn => {
-        const turnIcon = L.divIcon({
-          className: 'turn-arrow',
-          html: '<div style="background:#1e90ff;color:#fff;padding:2px 6px;border-radius:4px;font-weight:bold;font-size:12px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">&gt;&gt;&gt;</div>',
-          iconSize: [40, 20],
-          iconAnchor: [20, 10]
-        });
-        L.marker(turn.point, { icon: turnIcon }).addTo(map);
-      });
-
       // Add regular arrowheads along route
       lineADecorator = L.polylineDecorator(lineALayer, {
         patterns: [{
@@ -192,19 +161,21 @@
       map.fitBounds(lineALayer.getBounds());
       
       // Render stops - snap to route and make visible
-      const STOP_ICON_A = L.divIcon({
-        className: 'stop-icon-a',
-        html: '<div style="background:#1e90ff;color:#fff;padding:6px 10px;border-radius:12px;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.4);border:2px solid #fff;">A</div>',
-        iconSize: [32, 28],
-        iconAnchor: [16, 14]
-      });
+      function createStopIcon(label) {
+        return L.divIcon({
+          className: 'stop-icon-wrapper',
+          html: `<div class="stop-icon stop-icon-line-a">${label}</div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
+        });
+      }
 
       if (window.STOPS && window.STOPS.lineA) {
         window.STOPS.lineA.forEach((stop, idx) => {
           // Snap stop to nearest route point
           const snappedCoords = findClosestRoutePoint(stop.coords, route);
-          const marker = L.marker(snappedCoords, { 
-            icon: STOP_ICON_A,
+          const marker = L.marker(snappedCoords, {
+            icon: createStopIcon(idx + 1),
             zIndexOffset: 1000 // Make stops appear on top
           })
             .addTo(map)
