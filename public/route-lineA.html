@@ -85,6 +85,47 @@
     let lineALayer, lineADecorator;
     const LINE_A_COLOR = '#1e90ff';
 
+    // Find closest point on route for a given coordinate
+    function findClosestRoutePoint(point, route) {
+      let minDist = Infinity;
+      let closestPoint = route[0];
+      for (let i = 0; i < route.length; i++) {
+        const dist = haversineMeters(point, route[i]);
+        if (dist < minDist) {
+          minDist = dist;
+          closestPoint = route[i];
+        }
+      }
+      return closestPoint;
+    }
+
+    // Calculate angle between two segments
+    function calculateAngle(p1, p2, p3) {
+      const v1 = [p2[0] - p1[0], p2[1] - p1[1]];
+      const v2 = [p3[0] - p2[0], p3[1] - p2[1]];
+      const dot = v1[0] * v2[0] + v1[1] * v2[1];
+      const mag1 = Math.sqrt(v1[0] * v1[0] + v1[1] * v1[1]);
+      const mag2 = Math.sqrt(v2[0] * v2[0] + v2[1] * v2[1]);
+      const angle = Math.acos(Math.max(-1, Math.min(1, dot / (mag1 * mag2))));
+      return angle * (180 / Math.PI);
+    }
+
+    // Detect overlapping route segments
+    function findOverlappingSegments(route, threshold = 0.0001) {
+      const overlaps = [];
+      for (let i = 0; i < route.length - 1; i++) {
+        for (let j = i + 2; j < route.length - 1; j++) {
+          const dist1 = haversineMeters(route[i], route[j]);
+          const dist2 = haversineMeters(route[i + 1], route[j + 1]);
+          if (dist1 < threshold * 111000 && dist2 < threshold * 111000) {
+            overlaps.push([route[i], route[i + 1]]);
+            overlaps.push([route[j], route[j + 1]]);
+          }
+        }
+      }
+      return overlaps;
+    }
+
     // Initialize map
     function initMap() {
       map = L.map('map').setView([14.639, 121.078], 16);
@@ -93,14 +134,49 @@
         attribution: '&copy; OpenStreetMap contributors'
       }).addTo(map);
 
+      const route = window.routes.lineA;
+
+      // Detect and draw overlapping segments in yellow first (so blue goes on top)
+      const overlaps = findOverlappingSegments(route);
+      if (overlaps.length > 0) {
+        overlaps.forEach(segment => {
+          L.polyline(segment, {
+            color: '#ffc800',
+            weight: 6,
+            dashArray: '8 8',
+            opacity: 0.8
+          }).addTo(map);
+        });
+      }
+
       // Draw Line A route
-      lineALayer = L.polyline(window.routes.lineA, {
+      lineALayer = L.polyline(route, {
         color: LINE_A_COLOR,
         weight: 5,
         dashArray: '8 8'
       }).addTo(map);
 
-      // Add arrowheads
+      // Detect turns and add turn arrows
+      const turnPoints = [];
+      for (let i = 1; i < route.length - 1; i++) {
+        const angle = calculateAngle(route[i - 1], route[i], route[i + 1]);
+        if (angle < 150) { // Sharp turn (less than 150 degrees)
+          turnPoints.push({ point: route[i], angle });
+        }
+      }
+
+      // Add turn arrows
+      turnPoints.forEach(turn => {
+        const turnIcon = L.divIcon({
+          className: 'turn-arrow',
+          html: '<div style="background:#1e90ff;color:#fff;padding:2px 6px;border-radius:4px;font-weight:bold;font-size:12px;box-shadow:0 2px 4px rgba(0,0,0,0.3);">&gt;&gt;&gt;</div>',
+          iconSize: [40, 20],
+          iconAnchor: [20, 10]
+        });
+        L.marker(turn.point, { icon: turnIcon }).addTo(map);
+      });
+
+      // Add regular arrowheads along route
       lineADecorator = L.polylineDecorator(lineALayer, {
         patterns: [{
           offset: '5%',
@@ -115,28 +191,27 @@
 
       map.fitBounds(lineALayer.getBounds());
       
-      // Render stops with proper icons (after map is ready)
-      setTimeout(() => {
-        const STOP_ICON_A = L.divIcon({
-          className: 'stop-icon-a',
-          html: '<div style="background:#1e90ff;color:#fff;padding:4px 8px;border-radius:12px;font-weight:600;box-shadow:0 1px 6px rgba(0,0,0,0.2)">A</div>',
-          iconSize: [24, 24],
-          iconAnchor: [12, 12]
-        });
+      // Render stops - snap to route and make visible
+      const STOP_ICON_A = L.divIcon({
+        className: 'stop-icon-a',
+        html: '<div style="background:#1e90ff;color:#fff;padding:6px 10px;border-radius:12px;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.4);border:2px solid #fff;">A</div>',
+        iconSize: [32, 28],
+        iconAnchor: [16, 14]
+      });
 
-        if (window.STOPS && window.STOPS.lineA) {
-          console.log('Rendering stops:', window.STOPS.lineA.length);
-          window.STOPS.lineA.forEach((stop, idx) => {
-            const marker = L.marker(stop.coords, { icon: STOP_ICON_A })
-              .addTo(map)
-              .bindPopup(`<strong>${stop.name}</strong>`);
-            stopMarkers.push(marker);
-            console.log(`Stop ${idx + 1}: ${stop.name} at ${stop.coords}`);
-          });
-        } else {
-          console.error('STOPS not loaded:', window.STOPS);
-        }
-      }, 100);
+      if (window.STOPS && window.STOPS.lineA) {
+        window.STOPS.lineA.forEach((stop, idx) => {
+          // Snap stop to nearest route point
+          const snappedCoords = findClosestRoutePoint(stop.coords, route);
+          const marker = L.marker(snappedCoords, { 
+            icon: STOP_ICON_A,
+            zIndexOffset: 1000 // Make stops appear on top
+          })
+            .addTo(map)
+            .bindPopup(`<strong>${stop.name}</strong>`);
+          stopMarkers.push(marker);
+        });
+      }
     }
 
     // Build jeep icon
